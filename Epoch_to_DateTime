@@ -1,0 +1,59 @@
+import pandas as pd
+import matplotlib.pyplot as plt
+
+# Load JSON
+df = pd.read_json("40379_2015_2024.json")
+
+# Convert Epoch to datetime
+df['EPOCH'] = pd.to_datetime(df['EPOCH'])
+
+# Create Month-Year column
+df['Month'] = df['EPOCH'].dt.to_period('M')
+
+# Columns to keep (add 'Month' to keep it for grouping)
+columns_to_keep = [
+   'EPOCH', 'BSTAR', 'NORAD_CAT_ID', 'LAUNCH_DATE',
+    'INCLINATION', 'ECCENTRICITY', 'PERIAPSIS', 'APOAPSIS', 'Month'
+]
+# Only keep columns that actually exist in the DataFrame
+existing_columns = [col for col in columns_to_keep if col in df.columns]
+df = df[existing_columns]
+
+# Define aggregation dictionary (add only if columns exist)
+agg_dict = {
+    'BSTAR': 'mean',
+    'NORAD_CAT_ID': 'first',
+    'LAUNCH_DATE': 'first',
+    'INCLINATION': 'first',
+    'ECCENTRICITY': 'first',
+    'PERIAPSIS': 'first',
+    'APOAPSIS': 'first'
+}
+# Only include aggregation for columns that exist
+agg_dict_existing = {k: v for k, v in agg_dict.items() if k in df.columns}
+
+# Group by Month and aggregate
+monthly_data = df.groupby('Month').agg(agg_dict_existing).reset_index()
+
+# Convert Month back to string
+monthly_data['Month'] = monthly_data['Month'].astype(str)
+
+# Save CSV
+csv_path = "monthly_bstar_with_metadata3.csv"
+monthly_data.to_csv(csv_path, index=False)
+print(f"CSV saved at: {csv_path}")
+
+# Plot
+plt.figure(figsize=(12,6))
+plt.plot(monthly_data['Month'], monthly_data['BSTAR'], marker='o', linewidth=2)
+
+plt.title("Monthly Mean BSTAR (2015–2024)", fontsize=16)
+plt.xlabel("Month", fontsize=12)
+plt.ylabel("Mean BSTAR", fontsize=12)
+plt.xticks(rotation=45)
+plt.grid(True, linestyle="--", alpha=0.6)
+plt.tight_layout()
+
+# Save plot
+plt.savefig("monthly_bstar_plot.png", dpi=300)
+plt.show()
